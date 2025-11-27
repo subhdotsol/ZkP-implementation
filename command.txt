@@ -1,0 +1,42 @@
+// Guide Steps : 
+
+1. create three folder for -> circuits , inputs , outputs 
+
+2 . write your circuit in circuits/sumproduct.circom
+
+// generate the required files -> pass the circom file to generate r1cs , wasm and syn files
+3. run the command : circom circuits/sumproduct.circom --r1cs --wasm --sym -o outputs
+
+// create the json input.json
+{
+    a : "7", 
+    b : "5"
+}
+
+4. create the witness generation command -> pass the witnes.js and the wasm file with the inputs and the name of the witness.wtns
+node outputs/sumproduct_js/generate_witness.js outputs/sumproduct_js/sumproduct.wasm inputs/input.json witness.wtns 
+
+// the 4th step will generate a witness 
+
+5. Generating the trusted setup : power of tau + groth16
+snarkjs powersoftau new bn128 12 pot12_0000.ptau
+snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau
+
+// NOTE : TAU not prepared might hit to solve tha use 
+snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau
+
+6. verify the final file -> send the pot12_final.ptau file generated
+snarkjs powersoftau verify pot12_final.ptau 
+
+7. continuation of genrating the tursted setup
+snarkjs groth16 setup outputs/sumproduct.r1cs  pot12_final.ptau circuit_0000.zkey
+snarkjs zkey export verificationkey circuit_0000.zkey verification_key.json
+
+8. generating the proof
+snarkjs groth16 prove circuit_0000.zkey witness.wtns proof.json public.json
+
+9. verifying the proof 
+snarkjs groth16 verify verification_key.json public.json proof.json
+
+[TO DEPLOY THE CONTRACT ON SOLIDITY]
+snarkjs groth16 verify verification_key.json public.json proof.json
